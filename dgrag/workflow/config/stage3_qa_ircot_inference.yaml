@@ -1,0 +1,39 @@
+hydra:
+  run:
+    dir: outputs/qa_agent_inference/${dataset.data_name}/${now:%Y-%m-%d}/${now:%H-%M-%S} # Output directory
+
+defaults:
+  - _self_
+  - doc_ranker: idf_topk_ranker # The document ranker to use
+  - agent_prompt: hotpotqa_ircot # The agent prompt to use
+  - qa_prompt: hotpotqa # The QA prompt to use
+  - ner_model: llm_ner_model # The NER model to use
+  - el_model: colbert_el_model # The EL model to use
+  - qa_evaluator: hotpotqa # The QA evaluator to use
+
+seed: 1024
+
+dataset:
+  root: ./data # data root directory
+  data_name: hotpotqa_test # data name
+
+llm:
+  _target_: dgrag.llms.ChatGPT # The language model to use
+  model_name_or_path: deepseek-ai/DeepSeek-V3.2 # The model name or path
+  base_url: https://api.siliconflow.cn/v1
+  api_key_env: SILICONFLOW_API_KEY
+  retry: 5 # Number of retries
+
+graph_retriever:
+  model_path: rmanluo/GFM-RAG-8M # Checkpoint path of the pre-trained GFM-RAG model
+  doc_ranker: ${doc_ranker} # The document ranker to use
+  ner_model: ${ner_model} # The NER model to usek
+  el_model: ${el_model} # The EL model to use
+  qa_evaluator: ${qa_evaluator} # The QA evaluator to use
+  init_entities_weight: True # Whether to initialize the entities weight
+
+test:
+  top_k: 10 # Number of documents to retrieve
+  max_steps: 2 # Maximum number of steps
+  max_test_samples: -1 # -1 for all samples
+  resume: null # Resume from previous prediction

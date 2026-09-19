@@ -1,0 +1,2 @@
+_target_: dgrag.doc_rankers.IDFWeightedTopKRanker
+top_k: 20

@@ -1,0 +1,43 @@
+name: code-quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      #----------------------------------------------
+      #       check-out repo and set-up python
+      #----------------------------------------------
+      - name: Check out this repository
+        uses: actions/checkout@v4
+      - name: Set up python
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      #----------------------------------------------
+      #       load cached pip packages if cache exists
+      #----------------------------------------------
+      - name: Load cached pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('requirements-dev.txt') }}
+      #----------------------------------------------
+      #  install the tooling used by pre-commit
+      #----------------------------------------------
+      - name: Install dev requirements
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+      #----------------------------------------------
+      # Run code quality checks
+      #----------------------------------------------
+      - name: Run quality checks
+        run: |
+          mkdir -p ~/.mypy_cache
+          pre-commit run --all-files

@@ -1,0 +1,11 @@
+# Ruff configuration.  These settings previously lived under [tool.ruff] and
+# [tool.ruff.lint] in pyproject.toml.
+exclude = ["dgrag/ultra"]
+
+[lint]
+extend-select = ["I", "N", "UP", "B", "PD002"]
+extend-ignore = ["E501", "E203", "E266"]
+unfixable = ["B"]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]

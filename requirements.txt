@@ -1,0 +1,39 @@
+# Runtime dependencies for D-G RAG.
+#
+# Python 3.12 is required (3.13 is not supported yet).  Upper bounds are kept
+# where the next major release would be a breaking change.
+#
+#   python -m pip install -r requirements.txt
+
+# --- Graph foundation retriever -------------------------------------------------
+torch>=2.4.1
+torch-geometric>=2.4.0,<3.0.0
+geoopt>=0.5.1
+# Used by the rspmm CUDA extension to parallelise kernel builds.
+ninja>=1.11.1.1,<2.0.0
+
+# --- Configuration, experiment tracking and utilities ---------------------------
+hydra-core>=1.3.2,<2.0.0
+easydict>=1.13,<2.0.0
+pyyaml>=6.0.2,<7.0.0
+tqdm>=4.66.5,<5.0.0
+python-dotenv>=1.0.1,<2.0.0
+wandb>=0.18.5,<0.19.0
+
+# --- Text and entity encoders ---------------------------------------------------
+sentence-transformers>=3.2.0
+transformers>=4.46.1,<5.0.0
+
+# --- LLM clients used for OpenIE and answer generation --------------------------
+openai>=1.52.2,<2.0.0
+tiktoken>=0.8.0,<0.9.0
+langchain>=0.3.9,<0.4.0
+langchain-openai>=0.2.11,<0.3.0
+langchain-community>=0.3.9,<0.4.0
+langchain-together>=0.2.0,<0.3.0
+langchain-nvidia-ai-endpoints>=0.3.9,<0.4.0
+
+# --- Dense retrieval ------------------------------------------------------------
+# CUDA 12 build; install faiss-cpu instead on CPU-only machines.
+faiss-gpu-cu12>=1.9.0.post1,<2.0.0
+ragatouille>=0.0.9.post2,<0.0.10

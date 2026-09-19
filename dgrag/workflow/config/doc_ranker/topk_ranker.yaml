@@ -1,0 +1,2 @@
+_target_: dgrag.doc_rankers.TopKRanker
+top_k: 10

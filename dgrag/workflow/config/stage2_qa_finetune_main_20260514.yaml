@@ -1,0 +1,127 @@
+# Frozen QA fine-tuning protocol from the completed run in
+# C:/Users/lieyi/Downloads/stage2_qa_finetune.log (started 2026-05-14 14:13:07).
+# Variant scripts must override only their intended ablation switches and checkpoint.
+
+hydra:
+  run:
+    dir: outputs/main_finetune/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+defaults:
+  - _self_
+  - doc_ranker: idf_topk_ranker
+  - text_emb_model: mpnet
+
+seed: 1024
+
+datasets:
+  _target_: dgrag.datasets.QADataset
+  cfgs:
+    root: ./data
+    force_rebuild: false
+    text_emb_model_cfgs: ${text_emb_model}
+    compute_structural_score: true
+    structural_score_alpha: 0.2
+  train_names:
+    - hotpotqa_train_example
+    - 2wikimultihopqa_train0
+    - musique_train0
+  valid_names:
+    - hotpotqa_test
+    - musique_test
+    - 2wikimultihopqa_test
+  init_datasets: true
+  feat_dim: 768
+  max_datasets_in_memory: 10
+  data_loading_workers: 4
+
+model:
+  _target_: dgrag.models.GNNRetriever
+  use_question_entity_contrastive: true
+  question_entity_contrastive_weight: 0.1
+  question_entity_contrastive_temperature: 0.3
+  question_entity_contrastive_mode: hard
+  question_entity_hard_negative_topk: 256
+  question_entity_hard_negative_exclude_question_entities: true
+  question_entity_hard_negative_random_fallback: true
+  branch_supervised_weight: 0.03
+  branch_supervised_bce_weight: 0.3
+  branch_supervised_listce_weight: 0.7
+  branch_supervised_adversarial_temperature: 0.2
+  entity_model:
+    _target_: dgrag.ultra.riemannian_models.RiemannianQueryNBFNet
+    input_dim: 64
+    hidden_dims: [64, 64, 64, 64, 64, 64]
+    message_func: distmult
+    aggregate_func: attention_frechet
+    short_cut: true
+    layer_norm: true
+    branch_geometries: [lorentz, euclidean]
+    use_alignment_loss: false
+    alignment_weight: 0.01
+    alignment_temperature: 0.2
+    alignment_sample_size: 128
+    use_decision_mutual_loss: true
+    decision_mutual_weight: 0.005
+    decision_mutual_temperature: 1.0
+    decision_mutual_divergence: js
+    decision_mutual_teacher: fuse
+    decision_mutual_branch_kl_weight: 0.2
+    decision_mutual_candidate_mode: hard
+    decision_mutual_topk: 256
+    use_topology_mutual_loss: false
+    topology_mutual_weight: 0.005
+    topology_mutual_temperature: 0.5
+    topology_mutual_divergence: js
+    topology_mutual_sample_size: 64
+    topology_kernel_degree: 2
+    topology_kernel_bias: 0.0
+    topology_mask_self: true
+    use_structure_gated_readout: false
+    specialization_weight: 0.0
+    specialization_margin: 0.1
+    gate_tau_low: 0.1
+    gate_tau_high: 0.75
+    gate_beta: 0.1
+    boundary_max_tangent_norm: 10.0
+    message_max_tangent_norm: 10.0
+    update_max_tangent_norm: 10.0
+    use_edge_parallel: true
+    edge_parallel_shard_strategy: contiguous
+    euclidean_edge_weight_requires_grad: false
+
+task:
+  strict_negative: true
+  metric: [mrr, hits@1, hits@2, hits@3, hits@5, hits@10, hits@20, hits@50, hits@100]
+  losses:
+    - name: ent_bce_loss
+      loss:
+        _target_: dgrag.losses.BCELoss
+        adversarial_temperature: 0.2
+      cfg:
+        weight: 0.3
+        is_doc_loss: false
+    - name: ent_pcr_loss
+      loss:
+        _target_: dgrag.losses.ListCELoss
+      cfg:
+        weight: 0.7
+        is_doc_loss: false
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 0.0005
+
+train:
+  batch_size: 1
+  distributed_batch_mode: single_batch_edge_parallel
+  num_epoch: 25
+  log_interval: 100
+  batch_per_epoch: null
+  save_best_only: true
+  save_pretrained: true
+  do_eval: true
+  max_grad_norm: 1.0
+  find_unused_parameters: false
+  timeout: 60
+  init_entities_weight: true
+  checkpoint: null

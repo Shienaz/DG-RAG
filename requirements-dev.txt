@@ -1,0 +1,9 @@
+# Tooling for the checks in .pre-commit-config.yaml.  The runtime dependencies
+# in requirements.txt are not needed for these checks.
+#
+#   python -m pip install -r requirements-dev.txt
+#   pre-commit run --all-files
+
+pre-commit>=4.0.1,<5.0.0
+mypy>=1.12.1,<2.0.0
+types-pyyaml>=6.0.12.20240917

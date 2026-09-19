@@ -1,0 +1,89 @@
+hydra:
+  run:
+    dir: outputs/qa_finetune_lorentz/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+defaults:
+  - _self_
+  - doc_ranker: idf_topk_ranker
+  - text_emb_model: mpnet
+
+seed: 1024
+
+datasets:
+  _target_: dgrag.datasets.QADataset
+  cfgs:
+    root: ./data
+    force_rebuild: False
+    text_emb_model_cfgs: ${text_emb_model}
+  train_names:
+    - musique_train0
+  valid_names:
+    - hotpotqa_test
+    - musique_test
+    - 2wikimultihopqa_test
+  init_datasets: True
+  feat_dim: 768
+  max_datasets_in_memory: 10
+  data_loading_workers: 4
+
+model:
+  _target_: dgrag.models.GNNRetriever
+  use_question_entity_contrastive: yes
+  question_entity_contrastive_weight: 0.05
+  question_entity_contrastive_temperature: 0.2
+  use_question_relation_adapter: yes
+  question_relation_adapter_hidden_dim: null
+  question_relation_adapter_scale: 0.1
+  entity_model:
+    _target_: dgrag.ultra.riemannian_models.RiemannianQueryNBFNet
+    input_dim: 64
+    hidden_dims: [64, 64, 64]
+    message_func: distmult
+    aggregate_func: attention_frechet
+    short_cut: yes
+    layer_norm: yes
+    branch_geometries: [lorentz]
+    use_alignment_loss: no
+    alignment_weight: 0.1
+    alignment_temperature: 0.2
+    alignment_sample_size: 128
+    boundary_max_tangent_norm: 10.0
+    message_max_tangent_norm: 10.0
+    update_max_tangent_norm: 10.0
+
+task:
+  strict_negative: yes
+  metric:
+    [mrr, hits@1, hits@2, hits@3, hits@5, hits@10, hits@20, hits@50, hits@100]
+  losses:
+    - name: ent_bce_loss
+      loss:
+        _target_: dgrag.losses.BCELoss
+        adversarial_temperature: 0.2
+      cfg:
+        weight: 0.3
+        is_doc_loss: False
+    - name: ent_pcr_loss
+      loss:
+        _target_: dgrag.losses.ListCELoss
+      cfg:
+        weight: 0.7
+        is_doc_loss: False
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 5.0e-4
+
+train:
+  batch_size: 2
+  num_epoch: 25
+  log_interval: 100
+  batch_per_epoch: null
+  save_best_only: yes
+  save_pretrained: yes
+  do_eval: yes
+  max_grad_norm: 1.0
+  find_unused_parameters: no
+  timeout: 60
+  init_entities_weight: True
+  checkpoint: null
